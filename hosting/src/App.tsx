@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
+import type { User } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, onSnapshot, getDocs, query, where } from 'firebase/firestore';
+import { auth, db } from './firebase';
+
 import PublicValidationScreen from './components/PublicValidationScreen';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
-import { collection, onSnapshot, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { db, auth } from './firebase';
 
+/**
+ * @typedef {'ACTIVE' | 'INACTIVE' | 'DELETED'} DomainStatus
+ * Representa o estado do domínio no sistema. 'DELETED' indica exclusão lógica (Soft Delete).
+ */
 export type DomainStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
+/**
+ * @typedef {Object} Domain
+ * Representa um cliente (Domínio) cadastrado no sistema de segurança.
+ */
 export interface Domain {
   id: string;
   companyName: string;
@@ -17,8 +26,17 @@ export interface Domain {
   allowedPages: string[];
 }
 
+/** 
+ * Lista de portais permitidos pelo sistema (Roles de Autorização).
+ * O usuário só conseguirá acessar a aplicação se sua role exata estiver no array 'allowedPages'.
+ */
 export const AVAILABLE_PAGES = ['Portal Cliente', 'Portal Operacional'];
 
+/**
+ * @component App
+ * Componente principal do InstaPasso. Gerencia o estado de autenticação (User Session)
+ * e atua como um 'Guard' de rotas (Zero-Trust) para proteger o AdminPanel.
+ */
 function App() {
   const [currentView, setCurrentView] = useState<'public' | 'admin'>('admin');
   const [domains, setDomains] = useState<Domain[]>([]);

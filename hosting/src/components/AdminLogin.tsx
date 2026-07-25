@@ -1,23 +1,40 @@
 import { useState } from 'react';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../firebase';
+import { signInWithPopup, signOut } from 'firebase/auth';
+import { auth, provider, db } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 interface AdminLoginProps {
   authError?: string;
 }
 
+/**
+ * @component AdminLogin
+ * Responsável pela autenticação e autorização (Zero-Trust) para a área administrativa.
+ * O componente não aceita mais e-mail e senha, utilizando exclusivamente o Google OAuth2.
+ */
 export default function AdminLogin({ authError }: AdminLoginProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Fluxo de autenticação híbrida (Auth + Firestore Rules)
+   * 1. Autentica via Google SSO.
+   * 2. Extrai o domínio corporativo do usuário.
+   * 3. Consulta a coleção `domains` validando: Domínio Exato + Status ACTIVE + Role "Portal Operacional".
+   * 4. Se falhar na autorização, desloga o usuário (Firebase signOut) para garantir o bloqueio da sessão.
+   */
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError('');
+
     try {
+      // O Firebase Authenticator gerencia o popup OAuth2 do Google.
+      // A verdadeira validação (Zero-Trust) ocorrerá no componente Pai (App.tsx)
+      // que detecta a mudança de estado e consulta o Firestore.
       await signInWithPopup(auth, provider);
     } catch (err: any) {
       console.error("Google SSO error:", err);
-      setError('Falha ao autenticar com o Google.');
+      setError(err.message || 'Falha ao autenticar com o Google.');
       setIsLoading(false);
     }
     // Não damos isLoading(false) no sucesso porque o App.tsx vai interceptar o login e fazer o loading da validação.

@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
+/**
+ * @interface AuditLog
+ * Estrutura de dados imutável gerada pelo Cloud Function 'auditLogs.ts'
+ */
 export interface AuditLog {
   id: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGICAL_DELETE';
@@ -12,6 +16,11 @@ export interface AuditLog {
   newState: any;
 }
 
+/**
+ * @component AuditViewer
+ * Exibe os logs de segurança e operações críticas do sistema.
+ * Estes dados são apenas-leitura (Read-Only) para os administradores.
+ */
 export default function AuditViewer() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);

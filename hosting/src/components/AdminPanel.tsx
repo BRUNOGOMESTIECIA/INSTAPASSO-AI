@@ -10,6 +10,12 @@ interface AdminPanelProps {
   setDomains?: React.Dispatch<React.SetStateAction<Domain[]>>; // Mantido por compatibilidade
 }
 
+/**
+ * @component AdminPanel
+ * Painel Administrativo responsável pelo CRUD de domínios (B2B).
+ * Aqui é configurada a "Identidade" e os "Privilégios" de cada cliente,
+ * sendo o coração da Arquitetura Zero-Trust do sistema.
+ */
 export default function AdminPanel({ domains }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'DOMAINS' | 'AUDIT'>('DOMAINS');
   const [newCompany, setNewCompany] = useState('');
