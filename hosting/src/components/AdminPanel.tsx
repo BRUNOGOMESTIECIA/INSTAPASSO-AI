@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import type { Domain, DomainStatus } from '../App';
 import { AVAILABLE_PAGES } from '../App';
 import { db } from '../firebase';
-import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 
 interface AdminPanelProps {
   domains: Domain[];
