@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, provider, db } from '../firebase';
 import type { Domain } from '../App';
 
 interface PublicValidationScreenProps {
@@ -25,23 +26,38 @@ export default function PublicValidationScreen({ domains }: PublicValidationScre
           return;
       }
 
-      const emailParts = user.email.toLowerCase().split('@');
+      const emailLower = user.email.toLowerCase();
+      const emailParts = emailLower.split('@');
       const domainName = `@${emailParts[1]}`;
 
-      // Validação contra a lista de domínios cadastrados (que está no App)
-      const foundDomain = domains.find(d => d.domainName === domainName);
+      // Validação consultando diretamente o banco de dados (Firestore)
+      // Procura regras B2B (domínio) OU B2C (e-mail exato)
+      const q = query(
+         collection(db, 'domains'), 
+         where('domainName', 'in', [domainName, emailLower])
+      );
+      const querySnapshot = await getDocs(q);
 
-      if (!foundDomain) {
+      if (querySnapshot.empty) {
          setStatus({ type: 'error', message: `O domínio ${domainName} não está cadastrado no sistema.` });
-      } else if (foundDomain.status === 'INACTIVE') {
-         setStatus({ type: 'error', message: 'O domínio corporativo do seu e-mail foi desabilitado. Entre em contato com o administrador.' });
-      } else if (foundDomain.status === 'DELETED') {
-         setStatus({ type: 'error', message: 'O domínio corporativo do seu e-mail foi excluído do sistema.' });
       } else {
-         const permissoesStr = foundDomain.allowedPages.length > 0 
-            ? foundDomain.allowedPages.join(', ')
-            : 'Nenhum sistema específico';
-         setStatus({ type: 'success', message: `Acesso permitido! Autenticado via Google como: ${user.email}. Sistemas liberados: ${permissoesStr}` });
+         let foundDomain = querySnapshot.docs[0].data() as Domain;
+         // Se houver mais de um, tenta pegar o que está ativo
+         querySnapshot.forEach((doc) => {
+            const d = doc.data() as Domain;
+            if (d.status === 'ACTIVE') foundDomain = d;
+         });
+
+         if (foundDomain.status === 'INACTIVE') {
+            setStatus({ type: 'error', message: 'O domínio corporativo do seu e-mail foi desabilitado. Entre em contato com o administrador.' });
+         } else if (foundDomain.status === 'DELETED') {
+            setStatus({ type: 'error', message: 'O domínio corporativo do seu e-mail foi excluído do sistema.' });
+         } else {
+            const permissoesStr = foundDomain.allowedPages.length > 0 
+               ? foundDomain.allowedPages.join(', ')
+               : 'Nenhum sistema específico';
+            setStatus({ type: 'success', message: `Acesso permitido! Autenticado via Google como: ${user.email}. Sistemas liberados: ${permissoesStr}` });
+         }
       }
 
     } catch (error: any) {

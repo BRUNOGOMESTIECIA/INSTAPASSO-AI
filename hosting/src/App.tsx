@@ -52,9 +52,14 @@ function App() {
       if (firebaseUser) {
         try {
           const email = firebaseUser.email || '';
-          const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
+          const emailLower = email.toLowerCase();
+          const domainName = `@${emailLower.split('@')[1]}`;
           
-          const q = query(collection(db, 'domains'), where('domainName', '==', domainName));
+          // Busca regras que batam com o Domínio Corporativo OU com o E-mail Único exato
+          const q = query(
+             collection(db, 'domains'), 
+             where('domainName', 'in', [domainName, emailLower])
+          );
           const querySnapshot = await getDocs(q);
           
           if (!querySnapshot.empty) {
@@ -104,8 +109,13 @@ function App() {
 
   // Carregar domínios do Firestore em tempo real
   useEffect(() => {
-    // Só carrega os domínios se tivermos permissão (ou se precisarmos na tela pública, 
-    // mas por segurança o ideal é restringir na regra do Firestore)
+    // O Firestore Rules exige que o usuário esteja logado para ler a coleção.
+    // Portanto, só iniciamos o listener (onSnapshot) se o 'user' não for nulo.
+    if (!user) {
+      setDomains([]);
+      return;
+    }
+
     const unsubscribe = onSnapshot(collection(db, 'domains'), (snapshot) => {
       const domainsData: Domain[] = [];
       snapshot.forEach((doc) => {
@@ -117,7 +127,7 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handleLogout = async () => {
     try {
