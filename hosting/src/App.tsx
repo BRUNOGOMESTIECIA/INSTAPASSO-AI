@@ -13,7 +13,7 @@ import AdminLogin from './components/AdminLogin';
  * Representa o estado do domínio no sistema. 'DELETED' indica exclusão lógica (Soft Delete).
  */
 export type DomainStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
-export type OperatorRole = 'N1' | 'N2' | 'N3' | 'SOC' | 'INFRAESTRUTURA';
+export type OperatorRole = 'N1' | 'N2' | 'N3' | 'SOC' | 'INFRAESTRUTURA' | 'Administrador' | 'Super Administrador';
 
 /**
  * @typedef {Object} Domain

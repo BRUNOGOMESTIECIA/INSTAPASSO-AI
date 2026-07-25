@@ -346,6 +346,8 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
                     <option value="N3">N3</option>
                     <option value="SOC">SOC</option>
                     <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Super Administrador">Super Administrador</option>
                   </select>
                 </div>
               </div>
