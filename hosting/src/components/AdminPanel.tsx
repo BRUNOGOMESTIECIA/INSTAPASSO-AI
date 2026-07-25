@@ -110,9 +110,9 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
     e.preventDefault();
     if (!newOperatorName || !newOperatorEmail || !newOperatorRole) return;
 
-    if (!newOperatorEmail.endsWith('@tiecia.com.br')) {
-      alert('Acesso negado: O e-mail do operador deve obrigatoriamente pertencer ao domínio @tiecia.com.br');
-      return;
+    let finalEmail = newOperatorEmail.trim().toLowerCase();
+    if (!finalEmail.endsWith('@tiecia.com.br')) {
+      finalEmail = `${finalEmail}@tiecia.com.br`;
     }
 
     setIsProcessing(true);
@@ -121,7 +121,7 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
        const newEntry: Operator = {
          id: newId,
          fullName: newOperatorName,
-         email: newOperatorEmail.trim().toLowerCase(),
+         email: finalEmail,
          role: newOperatorRole,
          status: 'ACTIVE'
        };
@@ -315,16 +315,21 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label htmlFor="opEmail" className="block text-sm font-medium text-muted mb-2">E-mail (@tiecia.com.br)</label>
-                  <input
-                    type="email"
-                    id="opEmail"
-                    required
-                    value={newOperatorEmail}
-                    onChange={(e) => setNewOperatorEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
-                    placeholder="joao@tiecia.com.br"
-                  />
+                  <label htmlFor="opEmail" className="block text-sm font-medium text-muted mb-2">E-mail Corporativo</label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      id="opEmail"
+                      required
+                      value={newOperatorEmail}
+                      onChange={(e) => setNewOperatorEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-background border border-border border-r-0 rounded-l-lg focus:outline-none focus:border-muted text-foreground transition-colors text-right"
+                      placeholder="joao"
+                    />
+                    <span className="inline-flex items-center px-3 rounded-r-lg border border-border bg-zinc-800 text-muted text-sm whitespace-nowrap">
+                      @tiecia.com.br
+                    </span>
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <label htmlFor="opRole" className="block text-sm font-medium text-muted mb-2">Função</label>
