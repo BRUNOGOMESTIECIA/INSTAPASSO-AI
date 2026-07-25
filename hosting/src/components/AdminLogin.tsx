@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { signInWithPopup, signOut } from 'firebase/auth';
-import { auth, provider, db } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../firebase';
 
 interface AdminLoginProps {
   authError?: string;

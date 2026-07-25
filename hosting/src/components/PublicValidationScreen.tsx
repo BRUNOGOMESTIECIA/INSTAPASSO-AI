@@ -4,11 +4,8 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, provider, db } from '../firebase';
 import type { Domain } from '../App';
 
-interface PublicValidationScreenProps {
-  domains: Domain[];
-}
 
-export default function PublicValidationScreen({ domains }: PublicValidationScreenProps) {
+export default function PublicValidationScreen() {
   const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error', message: string }>({ type: 'idle', message: '' });
   const [loading, setLoading] = useState(false);
 

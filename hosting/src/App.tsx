@@ -203,7 +203,7 @@ function App() {
 
       <main className="flex-grow flex flex-col">
         {currentView === 'public' ? (
-          <PublicValidationScreen domains={domains} />
+          <PublicValidationScreen />
         ) : (
           isAuthLoading ? (
             <div className="flex-grow flex items-center justify-center">
