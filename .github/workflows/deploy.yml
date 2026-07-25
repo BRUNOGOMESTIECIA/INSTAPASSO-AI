@@ -1,0 +1,38 @@
+name: Deploy to Firebase
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Instalar Dependências das Functions
+        run: |
+          cd functions
+          npm ci
+          npm run build
+
+      - name: Instalar Dependências do Frontend React
+        run: |
+          cd hosting
+          npm ci
+          npm run build
+
+      - name: Deploy para o Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: seu-projeto-firebase
