@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import type { Domain, DomainStatus } from '../App';
+import type { Domain, DomainStatus, Operator, OperatorRole } from '../App';
 import { AVAILABLE_PAGES } from '../App';
 import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
@@ -8,21 +8,25 @@ import AuditViewer from './AuditViewer';
 interface AdminPanelProps {
   domains: Domain[];
   setDomains?: React.Dispatch<React.SetStateAction<Domain[]>>; // Mantido por compatibilidade
+  operators?: Operator[];
 }
 
 /**
  * @component AdminPanel
- * Painel Administrativo responsável pelo CRUD de domínios (B2B).
- * Aqui é configurada a "Identidade" e os "Privilégios" de cada cliente,
- * sendo o coração da Arquitetura Zero-Trust do sistema.
+ * Painel Administrativo responsável pelo CRUD de domínios (B2B) e Equipe Interna (Operadores).
  */
-export default function AdminPanel({ domains }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'AUDIT'>('DOMAINS');
+export default function AdminPanel({ domains, operators = [] }: AdminPanelProps) {
+  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'OPERATORS' | 'AUDIT'>('DOMAINS');
   const [newCompany, setNewCompany] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [newAllowedPages, setNewAllowedPages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados para Equipe Interna
+  const [newOperatorName, setNewOperatorName] = useState('');
+  const [newOperatorEmail, setNewOperatorEmail] = useState('');
+  const [newOperatorRole, setNewOperatorRole] = useState<OperatorRole>('N1');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DomainStatus | 'ALL'>('ALL');
@@ -44,6 +48,21 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
        }
     } catch (e) {
        console.error("Erro ao alterar status:", e);
+    } finally {
+       setIsProcessing(false);
+    }
+  };
+
+  const toggleOperatorStatus = async (id: string, currentStatus: DomainStatus) => {
+    setIsProcessing(true);
+    try {
+       const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+       const operator = operators.find(o => o.id === id);
+       if (operator) {
+          await setDoc(doc(db, 'operators', id), { ...operator, status: newStatus });
+       }
+    } catch (e) {
+       console.error("Erro ao alterar status do operador:", e);
     } finally {
        setIsProcessing(false);
     }
@@ -82,6 +101,38 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
        setNewAllowedPages([]);
     } catch(e) {
        console.error("Erro ao adicionar domínio:", e);
+    } finally {
+       setIsProcessing(false);
+    }
+  };
+
+  const handleAddOperator = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOperatorName || !newOperatorEmail || !newOperatorRole) return;
+
+    if (!newOperatorEmail.endsWith('@tiecia.com.br')) {
+      alert('Acesso negado: O e-mail do operador deve obrigatoriamente pertencer ao domínio @tiecia.com.br');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+       const newId = Date.now().toString();
+       const newEntry: Operator = {
+         id: newId,
+         fullName: newOperatorName,
+         email: newOperatorEmail.trim().toLowerCase(),
+         role: newOperatorRole,
+         status: 'ACTIVE'
+       };
+
+       await setDoc(doc(db, 'operators', newId), newEntry);
+
+       setNewOperatorName('');
+       setNewOperatorEmail('');
+       setNewOperatorRole('N1');
+    } catch(e) {
+       console.error("Erro ao adicionar operador:", e);
     } finally {
        setIsProcessing(false);
     }
@@ -213,6 +264,16 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
           Gerenciamento de Acessos
         </button>
         <button
+          onClick={() => setActiveTab('OPERATORS')}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'OPERATORS' 
+              ? 'border-foreground text-foreground' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          Equipe Interna
+        </button>
+        <button
           onClick={() => setActiveTab('AUDIT')}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'AUDIT' 
@@ -226,6 +287,132 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
 
       {activeTab === 'AUDIT' ? (
         <AuditViewer />
+      ) : activeTab === 'OPERATORS' ? (
+        <>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold mb-1">Equipe Interna (TIECIA)</h1>
+              <p className="text-muted text-sm">Gerenciamento exclusivo de operadores com e-mail @tiecia.com.br.</p>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-2xl mb-8">
+            <div className="px-6 py-5 border-b border-border bg-zinc-900/50">
+              <h3 className="text-lg font-medium leading-6">Cadastrar Operador</h3>
+            </div>
+            <form onSubmit={handleAddOperator} className="p-6">
+              <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6 mb-6">
+                <div className="sm:col-span-2">
+                  <label htmlFor="opName" className="block text-sm font-medium text-muted mb-2">Nome Completo</label>
+                  <input
+                    type="text"
+                    id="opName"
+                    required
+                    value={newOperatorName}
+                    onChange={(e) => setNewOperatorName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
+                    placeholder="Ex: João Silva"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="opEmail" className="block text-sm font-medium text-muted mb-2">E-mail (@tiecia.com.br)</label>
+                  <input
+                    type="email"
+                    id="opEmail"
+                    required
+                    value={newOperatorEmail}
+                    onChange={(e) => setNewOperatorEmail(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
+                    placeholder="joao@tiecia.com.br"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="opRole" className="block text-sm font-medium text-muted mb-2">Função</label>
+                  <select
+                    id="opRole"
+                    required
+                    value={newOperatorRole}
+                    onChange={(e) => setNewOperatorRole(e.target.value as OperatorRole)}
+                    className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
+                  >
+                    <option value="N1">N1</option>
+                    <option value="N2">N2</option>
+                    <option value="N3">N3</option>
+                    <option value="SOC">SOC</option>
+                    <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!newOperatorName || !newOperatorEmail || !newOperatorRole || isProcessing}
+                  className="bg-foreground text-background font-medium py-2.5 px-6 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {isProcessing ? 'Processando...' : 'Cadastrar Operador'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-2xl">
+            <div className="px-6 py-5 border-b border-border bg-zinc-900/50">
+              <h3 className="text-lg font-medium leading-6">Operadores Cadastrados</h3>
+            </div>
+            <div className="divide-y divide-border">
+              {operators.map((op) => (
+                <div key={op.id} className="px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-zinc-900/30 transition-colors space-y-4 sm:space-y-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                    <div className="mb-3 sm:mb-0">
+                      <p className="text-sm font-medium text-foreground">{op.fullName}</p>
+                      <p className="text-xs text-muted">{op.email}</p>
+                    </div>
+                    <div className="sm:ml-4 flex flex-col space-y-2">
+                      <div>{getStatusBadge(op.status)}</div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/30 text-blue-400 border border-blue-900/50">
+                          {op.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {op.status !== 'DELETED' && (
+                      <button
+                        disabled={isProcessing}
+                        onClick={() => toggleOperatorStatus(op.id, op.status)}
+                        className="text-xs font-medium px-3 py-1.5 border border-border rounded-md hover:bg-zinc-800 transition-colors text-muted hover:text-foreground disabled:opacity-50"
+                      >
+                        {op.status === 'ACTIVE' ? 'Desabilitar' : 'Habilitar'}
+                      </button>
+                    )}
+                    <button
+                      className="text-xs font-medium px-3 py-1.5 border border-red-900/30 rounded-md hover:bg-red-900/20 text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      disabled={op.status === 'DELETED' || isProcessing}
+                      onClick={async () => {
+                         try {
+                            setIsProcessing(true);
+                            await setDoc(doc(db, 'operators', op.id), { ...op, status: 'DELETED' });
+                         } catch(e) {
+                            console.error('Erro ao excluir:', e);
+                         } finally {
+                            setIsProcessing(false);
+                         }
+                      }}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {operators.length === 0 && (
+                <div className="px-6 py-8 text-center text-muted text-sm">
+                  Nenhum operador da TIECIA cadastrado.
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       ) : (
         <>
           <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between">

@@ -102,16 +102,15 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Carregar domínios do Firestore em tempo real
+  // Carregar domínios e operadores do Firestore em tempo real
   useEffect(() => {
-    // O Firestore Rules exige que o usuário esteja logado para ler a coleção.
-    // Portanto, só iniciamos o listener (onSnapshot) se o 'user' não for nulo.
     if (!user) {
       setDomains([]);
+      setOperators([]);
       return;
     }
 
-    const unsubscribe = onSnapshot(collection(db, 'domains'), (snapshot) => {
+    const unsubscribeDomains = onSnapshot(collection(db, 'domains'), (snapshot) => {
       const domainsData: Domain[] = [];
       snapshot.forEach((doc) => {
         domainsData.push({ id: doc.id, ...doc.data() } as Domain);
@@ -121,7 +120,20 @@ function App() {
       console.error('Erro ao buscar domínios do Firestore:', error);
     });
 
-    return () => unsubscribe();
+    const unsubscribeOperators = onSnapshot(collection(db, 'operators'), (snapshot) => {
+      const operatorsData: Operator[] = [];
+      snapshot.forEach((doc) => {
+        operatorsData.push({ id: doc.id, ...doc.data() } as Operator);
+      });
+      setOperators(operatorsData);
+    }, (error) => {
+      console.error('Erro ao buscar operadores do Firestore:', error);
+    });
+
+    return () => {
+        unsubscribeDomains();
+        unsubscribeOperators();
+    };
   }, [user]);
 
   const handleLogout = async () => {
@@ -188,7 +200,7 @@ function App() {
               <p className="text-muted text-sm">Verificando segurança...</p>
             </div>
           ) : user ? (
-            <AdminPanel domains={domains} setDomains={setDomains} />
+            <AdminPanel domains={domains} setDomains={setDomains} operators={operators} />
           ) : (
             <AdminLogin authError={authError} />
           )
