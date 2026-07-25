@@ -131,8 +131,9 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
        setNewOperatorName('');
        setNewOperatorEmail('');
        setNewOperatorRole('N1');
-    } catch(e) {
+    } catch(e: any) {
        console.error("Erro ao adicionar operador:", e);
+       alert("Erro ao salvar: " + (e.message || "Permissão negada ou falha na rede."));
     } finally {
        setIsProcessing(false);
     }
