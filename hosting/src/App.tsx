@@ -13,6 +13,7 @@ import AdminLogin from './components/AdminLogin';
  * Representa o estado do domínio no sistema. 'DELETED' indica exclusão lógica (Soft Delete).
  */
 export type DomainStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
+export type OperatorRole = 'N1' | 'N2' | 'N3' | 'SOC' | 'INFRAESTRUTURA';
 
 /**
  * @typedef {Object} Domain
@@ -24,6 +25,14 @@ export interface Domain {
   domainName: string;
   status: DomainStatus;
   allowedPages: string[];
+}
+
+export interface Operator {
+  id: string;
+  fullName: string;
+  email: string;
+  role: OperatorRole;
+  status: DomainStatus;
 }
 
 /** 
@@ -40,6 +49,7 @@ export const AVAILABLE_PAGES = ['Portal Cliente', 'Portal Operacional'];
 function App() {
   const [currentView, setCurrentView] = useState<'public' | 'admin'>('admin');
   const [domains, setDomains] = useState<Domain[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authError, setAuthError] = useState('');
