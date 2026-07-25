@@ -26,16 +26,11 @@ export default function PublicValidationScreen({ domains }: PublicValidationScre
           return;
       }
 
-      const emailLower = user.email.toLowerCase();
-      const emailParts = emailLower.split('@');
+      const emailParts = user.email.toLowerCase().split('@');
       const domainName = `@${emailParts[1]}`;
 
       // Validação consultando diretamente o banco de dados (Firestore)
-      // Procura regras B2B (domínio) OU B2C (e-mail exato)
-      const q = query(
-         collection(db, 'domains'), 
-         where('domainName', 'in', [domainName, emailLower])
-      );
+      const q = query(collection(db, 'domains'), where('domainName', '==', domainName));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {

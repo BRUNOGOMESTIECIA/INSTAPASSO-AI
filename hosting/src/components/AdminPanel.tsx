@@ -22,7 +22,6 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
   const [newDomain, setNewDomain] = useState('');
   const [newAllowedPages, setNewAllowedPages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSingleEmail, setIsSingleEmail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,10 +61,8 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
 
     setIsProcessing(true);
     try {
-       let formattedDomain = newDomain.trim().toLowerCase();
-       // Se não for E-mail Único e não começar com @, adicionamos o @
-       // Se for E-mail Único, garantimos que é salvo exatamente como digitado (já em lowercase)
-       if (!isSingleEmail && !formattedDomain.startsWith('@')) {
+       let formattedDomain = newDomain.trim();
+       if (!formattedDomain.startsWith('@')) {
          formattedDomain = `@${formattedDomain}`;
        }
        
@@ -146,16 +143,8 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
 
          const parts = remainder.split(',');
          if (parts.length >= 1) {
-            let domainName = parts[0].trim().toLowerCase();
-            
-            // Lógica inteligente de importação:
-            // Se já tem um '@' no meio do texto (ex: joao@gmail.com), é um E-mail Único e deixamos como está.
-            // Se não tem '@' ou só tem no início (ex: gmail.com ou @gmail.com), garantimos o '@' no início para ser Domínio.
-            if (!domainName.includes('@') || domainName.startsWith('@')) {
-               if (!domainName.startsWith('@')) {
-                  domainName = `@${domainName}`;
-               }
-            }
+            let domainName = parts[0].trim();
+            if (!domainName.startsWith('@')) domainName = `@${domainName}`;
 
            let allowedPages: string[] = [];
            if (parts[1]) {
@@ -273,37 +262,9 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
         </div>
         <form onSubmit={handleAddDomain} className="p-6">
           <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6 mb-6">
-            <div className="sm:col-span-6">
-              <label className="block text-sm font-medium text-muted mb-3">
-                Tipo de Acesso
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="accessType"
-                    checked={!isSingleEmail}
-                    onChange={() => setIsSingleEmail(false)}
-                    className="text-foreground bg-background border-border focus:ring-0"
-                  />
-                  <span className="text-sm">Domínio Corporativo (Empresa Inteira)</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="accessType"
-                    checked={isSingleEmail}
-                    onChange={() => setIsSingleEmail(true)}
-                    className="text-foreground bg-background border-border focus:ring-0"
-                  />
-                  <span className="text-sm">E-mail Único (Pessoa Específica)</span>
-                </label>
-              </div>
-            </div>
-
             <div className="sm:col-span-3">
               <label htmlFor="companyName" className="block text-sm font-medium text-muted mb-2">
-                Nome do Cliente / Empresa
+                Nome da Empresa
               </label>
               <input
                 type="text"
@@ -312,13 +273,13 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
                 className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
-                placeholder={isSingleEmail ? "Ex: João Silva" : "Ex: Acme Corp"}
+                placeholder="Ex: Acme Corp"
               />
             </div>
 
             <div className="sm:col-span-3">
               <label htmlFor="domainName" className="block text-sm font-medium text-muted mb-2">
-                {isSingleEmail ? 'E-mail Autorizado' : 'Domínio Autorizado'}
+                Domínio Autorizado
               </label>
               <input
                 type="text"
@@ -327,7 +288,7 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
                 value={newDomain}
                 onChange={(e) => setNewDomain(e.target.value)}
                 className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
-                placeholder={isSingleEmail ? "Ex: joao.silva@gmail.com" : "Ex: acme.com"}
+                placeholder="Ex: acme.com"
               />
             </div>
           </div>

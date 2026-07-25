@@ -52,14 +52,9 @@ function App() {
       if (firebaseUser) {
         try {
           const email = firebaseUser.email || '';
-          const emailLower = email.toLowerCase();
-          const domainName = `@${emailLower.split('@')[1]}`;
+          const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
           
-          // Busca regras que batam com o Domínio Corporativo OU com o E-mail Único exato
-          const q = query(
-             collection(db, 'domains'), 
-             where('domainName', 'in', [domainName, emailLower])
-          );
+          const q = query(collection(db, 'domains'), where('domainName', '==', domainName));
           const querySnapshot = await getDocs(q);
           
           if (!querySnapshot.empty) {
