@@ -297,7 +297,7 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
              <label className="block text-sm font-medium text-muted mb-3">
                 Permissões de Acesso aos Sistemas
              </label>
-             <div className="flex space-x-6">
+             <div className="flex flex-wrap gap-4 sm:gap-6">
                 {AVAILABLE_PAGES.map(page => (
                    <label key={page} className="flex items-center space-x-2 cursor-pointer">
                       <input 
@@ -350,9 +350,9 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
         </div>
         <div className="divide-y divide-border">
           {filteredDomains.map((domain) => (
-            <div key={domain.id} className="px-6 py-5 flex items-center justify-between hover:bg-zinc-900/30 transition-colors">
+            <div key={domain.id} className="px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-zinc-900/30 transition-colors space-y-4 sm:space-y-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-                <div className="mb-2 sm:mb-0">
+                <div className="mb-3 sm:mb-0">
                   <p className="text-sm font-medium text-foreground">
                     {domain.companyName}
                   </p>
@@ -363,7 +363,7 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
                 <div className="sm:ml-4 flex flex-col space-y-2">
                   <div>{getStatusBadge(domain.status)}</div>
                   {domain.allowedPages.length > 0 && (
-                     <div className="flex space-x-1">
+                     <div className="flex flex-wrap gap-1">
                         {domain.allowedPages.map(p => (
                            <span key={p} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-300">
                               {p}
@@ -373,7 +373,7 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
                   )}
                 </div>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-wrap gap-3">
                 {domain.status !== 'DELETED' && (
                   <button
                     disabled={isProcessing}
