@@ -3,6 +3,7 @@ import type { Domain, DomainStatus } from '../App';
 import { AVAILABLE_PAGES } from '../App';
 import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import AuditViewer from './AuditViewer';
 
 interface AdminPanelProps {
   domains: Domain[];
@@ -10,6 +11,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ domains }: AdminPanelProps) {
+  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'AUDIT'>('DOMAINS');
   const [newCompany, setNewCompany] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [newAllowedPages, setNewAllowedPages] = useState<string[]>([]);
@@ -191,35 +193,64 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold mb-1">Painel Administrativo</h1>
-          <p className="text-muted text-sm">Gerenciamento de empresas, domínios e permissões de acesso.</p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <input 
-            type="file" 
-            accept=".csv" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handleImportCSV} 
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="text-sm font-medium px-4 py-2 border border-border rounded-md hover:bg-zinc-800 transition-colors text-foreground"
-          >
-            Importar CSV
-          </button>
-          <button
-            onClick={handleExportCSV}
-            className="text-sm font-medium px-4 py-2 border border-border rounded-md hover:bg-zinc-800 transition-colors text-foreground"
-          >
-            Exportar CSV
-          </button>
-        </div>
+      
+      {/* Sub-Navegação */}
+      <div className="mb-6 flex border-b border-border">
+        <button
+          onClick={() => setActiveTab('DOMAINS')}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'DOMAINS' 
+              ? 'border-foreground text-foreground' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          Gerenciamento de Acessos
+        </button>
+        <button
+          onClick={() => setActiveTab('AUDIT')}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'AUDIT' 
+              ? 'border-foreground text-foreground' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          Logs de Auditoria
+        </button>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-2xl mb-8">
+      {activeTab === 'AUDIT' ? (
+        <AuditViewer />
+      ) : (
+        <>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold mb-1">Painel Administrativo</h1>
+              <p className="text-muted text-sm">Gerenciamento de empresas, domínios e permissões de acesso.</p>
+            </div>
+            <div className="mt-4 sm:mt-0 flex space-x-3">
+              <input 
+                type="file" 
+                accept=".csv" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleImportCSV} 
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-sm font-medium px-4 py-2 border border-border rounded-md hover:bg-zinc-800 transition-colors text-foreground"
+              >
+                Importar CSV
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="text-sm font-medium px-4 py-2 border border-border rounded-md hover:bg-zinc-800 transition-colors text-foreground"
+              >
+                Exportar CSV
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-2xl mb-8">
         <div className="px-6 py-5 border-b border-border bg-zinc-900/50">
           <h3 className="text-lg font-medium leading-6">Adicionar Novo Domínio</h3>
         </div>
@@ -372,6 +403,8 @@ export default function AdminPanel({ domains }: AdminPanelProps) {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

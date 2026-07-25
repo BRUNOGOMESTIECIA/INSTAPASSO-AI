@@ -1,20 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Função auxiliar para verificar se é admin
-    function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
+    // Função auxiliar para verificar se é admin da TI ecia
+    function isTieciaAdmin() {
+      return request.auth != null && request.auth.token.email.matches('.*@tiecia\\.com\\.br');
     }
 
     // Regra para coleção de Domínios
     match /domains/{domainId} {
-      allow read: if true; // Apenas Cloud Functions / App Check
-      allow write, update, delete: if isAdmin();
+      // Qualquer usuário logado pode ler (necessário para a trava do Zero-Trust na hora do login)
+      allow read: if request.auth != null; 
+      // Apenas administradores oficiais (seu domínio) podem cadastrar, editar ou deletar clientes
+      allow write, update, delete: if isTieciaAdmin();
     }
 
     // Regra para Logs de Auditoria (Apenas leitura por Admin, escrita server-side)
     match /audit_logs/{logId} {
-      allow read: if isAdmin();
+      allow read: if isTieciaAdmin();
       allow write: if false; // Apenas Cloud Functions em background
     }
 
