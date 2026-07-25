@@ -14,6 +14,14 @@ service cloud.firestore {
       allow write, update, delete: if isTieciaAdmin();
     }
 
+    // Regra para coleção da Equipe Interna (Operadores)
+    match /operators/{operatorId} {
+      // Qualquer usuário logado pode ler para validar se tem acesso
+      allow read: if request.auth != null; 
+      // Apenas administradores do InstaPasso podem gerenciar a equipe
+      allow write, update, delete: if isTieciaAdmin();
+    }
+
     // Regra para Logs de Auditoria (Apenas leitura por Admin, escrita server-side)
     match /audit_logs/{logId} {
       allow read: if isTieciaAdmin();
