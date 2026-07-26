@@ -62,34 +62,41 @@ function App() {
       if (firebaseUser) {
         try {
           const email = firebaseUser.email || '';
-          const domainName = `@${email.split('@')[1]?.toLowerCase()}`;
+          const isTiecia = email.toLowerCase().endsWith('@tiecia.com.br');
           
-          const q = query(collection(db, 'domains'), where('domainName', '==', domainName));
+          if (!isTiecia) {
+             setAuthError('Acesso Negado: Apenas e-mails corporativos (@tiecia.com.br) têm acesso ao Painel Admin.');
+             await signOut(auth);
+             setUser(null);
+             setIsAuthLoading(false);
+             return;
+          }
+
+          // Consulta a tabela de operadores
+          const q = query(collection(db, 'operators'), where('email', '==', email.toLowerCase()));
           const querySnapshot = await getDocs(q);
           
           if (!querySnapshot.empty) {
-             let hasPermission = false;
+             let hasAdminAccess = false;
              
-             // Pode haver mais de um registro para o mesmo domínio (ex: um excluído e outro ativo)
-             // Então vamos verificar todos os resultados encontrados
              querySnapshot.forEach((doc) => {
-                const domainDoc = doc.data() as Domain;
-                if (domainDoc.status === 'ACTIVE' && domainDoc.allowedPages.includes('Portal Operacional')) {
-                   hasPermission = true;
+                const op = doc.data() as Operator;
+                if (op.status === 'ACTIVE' && (op.role === 'Super Administrador' || op.role === 'Administrador')) {
+                   hasAdminAccess = true;
                 }
              });
 
-             if (hasPermission) {
+             if (hasAdminAccess) {
                 // Acesso permitido
                 setUser(firebaseUser);
                 setAuthError('');
                 setIsAuthLoading(false);
                 return;
              } else {
-                setAuthError('Acesso Negado: Seu domínio não tem a permissão de "Portal Operacional" ou está inativo.');
+                setAuthError('Acesso Negado: Você não possui privilégios de Administrador ou Super Administrador.');
              }
           } else {
-             setAuthError('Acesso Negado: Seu domínio corporativo não está cadastrado no sistema.');
+             setAuthError('Acesso Negado: Seu e-mail não está cadastrado na Equipe Interna.');
           }
           
           // Se falhou em alguma das validações, desloga o usuário
