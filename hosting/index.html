@@ -9,5 +9,81 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- ========================================================= -->
+    <!-- Proteção contra inspeção de código (DevTools)              -->
+    <!-- Bloqueia: clique direito, F12, Ctrl+Shift+I/J/C, Ctrl+U  -->
+    <!-- ========================================================= -->
+    <script>
+      (function() {
+        'use strict';
+
+        // 1. Bloqueia clique direito (menu "Inspecionar")
+        document.addEventListener('contextmenu', function(e) {
+          e.preventDefault();
+          return false;
+        });
+
+        // 2. Bloqueia atalhos de teclado do DevTools
+        document.addEventListener('keydown', function(e) {
+          // F12
+          if (e.key === 'F12' || e.keyCode === 123) {
+            e.preventDefault();
+            return false;
+          }
+          // Ctrl+Shift+I (Inspecionar)
+          if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+            e.preventDefault();
+            return false;
+          }
+          // Ctrl+Shift+J (Console)
+          if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+            e.preventDefault();
+            return false;
+          }
+          // Ctrl+Shift+C (Seletor de elementos)
+          if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+            e.preventDefault();
+            return false;
+          }
+          // Ctrl+U (Ver código-fonte)
+          if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+            e.preventDefault();
+            return false;
+          }
+        });
+
+        // 3. Detecta abertura do DevTools por tamanho da janela
+        var devToolsOpen = false;
+        var threshold = 160;
+        setInterval(function() {
+          var widthDiff = window.outerWidth - window.innerWidth > threshold;
+          var heightDiff = window.outerHeight - window.innerHeight > threshold;
+          if (widthDiff || heightDiff) {
+            if (!devToolsOpen) {
+              devToolsOpen = true;
+              document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#ef4444;font-family:sans-serif;text-align:center;padding:2rem"><div><h1 style="font-size:2rem;margin-bottom:1rem">⚠️ Acesso Bloqueado</h1><p style="color:#94a3b8;font-size:1.1rem">Ferramentas de desenvolvedor não são permitidas neste sistema.</p><p style="color:#94a3b8;margin-top:0.5rem">Feche o DevTools e recarregue a página.</p></div></div>';
+            }
+          } else {
+            devToolsOpen = false;
+          }
+        }, 1000);
+
+        // 4. Bloqueia arrastar elementos (drag) para prevenir inspeção
+        document.addEventListener('dragstart', function(e) {
+          e.preventDefault();
+          return false;
+        });
+
+        // 5. Bloqueia seleção de texto (dificulta copiar código visível)
+        document.addEventListener('selectstart', function(e) {
+          if (e.target && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            return false;
+          }
+        });
+
+      })();
+    </script>
   </body>
 </html>
