@@ -13,12 +13,12 @@ interface AdminPanelProps {
 
 const PERMISSION_GROUPS = [
   {
-    category: 'CHAMADOS & TICKETS',
+    category: 'GESTÃO DE TICKETS',
     permissions: [
       { id: 'tickets.view', label: 'Visualizar Tickets' },
       { id: 'tickets.create', label: 'Criar Novos Tickets' },
       { id: 'tickets.update', label: 'Editar Status & Atribuição' },
-      { id: 'tickets.close', label: 'Encerrar & Resolver Chamados' },
+      { id: 'tickets.close', label: 'Encerrar & Resolver Tickets' },
       { id: 'tickets.delete', label: 'Excluir Registros de Tickets' },
     ]
   },

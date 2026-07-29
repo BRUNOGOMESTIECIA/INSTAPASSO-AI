@@ -19,13 +19,13 @@ export interface AuditLog {
 
 /**
  * @component AuditViewer
- * Exibe a Trilha de Auditoria de Segurança (ISO 27001) com Protocolos #2026-XXXX,
+ * Exibe a Trilha de Auditoria de Segurança (ISO 27001) com Protocolos #2026XXXX,
  * Endereços de IP, Dispositivo, Usuário e Ação registrados em tempo real no InstaPasso.
  */
 const INITIAL_DEMO_LOGS: AuditLog[] = [
   {
     id: 'demo-1',
-    protocol: '#2026-1048',
+    protocol: '#20261048',
     action: 'Abertura de Chat Ao Vivo',
     originPortal: 'Portal do Cliente',
     userName: 'André Carvalho',
@@ -36,7 +36,7 @@ const INITIAL_DEMO_LOGS: AuditLog[] = [
   },
   {
     id: 'demo-2',
-    protocol: '#2026-1049',
+    protocol: '#20261049',
     action: 'Criação de Ticket Incidente',
     originPortal: 'Portal do Cliente',
     userName: 'João Silva',
@@ -47,7 +47,7 @@ const INITIAL_DEMO_LOGS: AuditLog[] = [
   },
   {
     id: 'demo-3',
-    protocol: '#2026-1045',
+    protocol: '#20261045',
     action: 'Encerramento de Atendimento',
     originPortal: 'Portal Operacional',
     userName: 'Carlos Técnico',
