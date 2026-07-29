@@ -33,6 +33,7 @@ export interface Operator {
   email: string;
   role: OperatorRole;
   status: DomainStatus;
+  permissions?: string[];
 }
 
 /** 

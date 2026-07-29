@@ -27,6 +27,9 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
   const [newOperatorName, setNewOperatorName] = useState('');
   const [newOperatorEmail, setNewOperatorEmail] = useState('');
   const [newOperatorRole, setNewOperatorRole] = useState<OperatorRole>('N1');
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
+    'tickets.view', 'tickets.create', 'chat.view', 'chat.attend', 'kb.view', 'catalog.view', 'reports.view'
+  ]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DomainStatus | 'ALL'>('ALL');
@@ -123,7 +126,8 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
          fullName: newOperatorName,
          email: finalEmail,
          role: newOperatorRole,
-         status: 'ACTIVE'
+         status: 'ACTIVE',
+         permissions: selectedPermissions
        };
 
        await setDoc(doc(db, 'operators', newId), newEntry);
@@ -351,6 +355,116 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
                   </select>
                 </div>
               </div>
+
+              {/* Seção Módulos e Permissões no InstaPasso */}
+              <div className="border-t border-border pt-6 mb-6">
+                <h4 className="text-sm font-semibold mb-1 text-foreground">Módulos e Permissões no Sistema</h4>
+                <p className="text-xs text-muted mb-4">Selecione quais telas e recursos este operador poderá acessar no Portal ITSM.</p>
+
+                <div className="space-y-4">
+                  {[
+                    {
+                      title: 'Tickets',
+                      perms: [
+                        { id: 'tickets.view', label: 'Visualizar Tickets' },
+                        { id: 'tickets.create', label: 'Criar Tickets' },
+                        { id: 'tickets.update', label: 'Editar Tickets (Geral)' },
+                        { id: 'tickets.assign', label: 'Atribuir/Transferir' },
+                        { id: 'tickets.close', label: 'Fechar Tickets' },
+                      ]
+                    },
+                    {
+                      title: 'Chat Ao Vivo',
+                      perms: [
+                        { id: 'chat.view', label: 'Acessar Histórico' },
+                        { id: 'chat.attend', label: 'Atender Chats (Ficar Online)' },
+                        { id: 'chat.manage', label: 'Gerenciar Filas/Atendentes' },
+                      ]
+                    },
+                    {
+                      title: 'Base de Conhecimento',
+                      perms: [
+                        { id: 'kb.view', label: 'Acesso Interno (Leitura)' },
+                        { id: 'kb.write', label: 'Criar/Editar Rascunhos' },
+                        { id: 'kb.publish', label: 'Publicar Artigos' },
+                      ]
+                    },
+                    {
+                      title: 'Catálogo de Serviços',
+                      perms: [
+                        { id: 'catalog.view', label: 'Visualizar Catálogo' },
+                        { id: 'catalog.manage', label: 'Gerenciar Serviços/SLA' },
+                      ]
+                    },
+                    {
+                      title: 'Relatórios e Dashboards',
+                      perms: [
+                        { id: 'reports.view', label: 'Visualizar Relatórios' },
+                      ]
+                    },
+                    {
+                      title: 'Administração Geral',
+                      perms: [
+                        { id: 'admin.users', label: 'Gerenciar Equipe/Clientes' },
+                        { id: 'admin.roles', label: 'Papéis e Permissões' },
+                        { id: 'admin.settings', label: 'Configurações Globais' },
+                      ]
+                    }
+                  ].map((group) => {
+                    const groupPermIds = group.perms.map(p => p.id);
+                    const allChecked = groupPermIds.every(id => selectedPermissions.includes(id));
+                    return (
+                      <div key={group.title} className="p-4 border border-border rounded-xl bg-zinc-900/40 space-y-3">
+                        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                          <span className="text-xs font-bold text-foreground uppercase tracking-wider">{group.title}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (allChecked) {
+                                setSelectedPermissions(prev => prev.filter(p => !groupPermIds.includes(p)));
+                              } else {
+                                const toAdd = groupPermIds.filter(p => !selectedPermissions.includes(p));
+                                setSelectedPermissions(prev => [...prev, ...toAdd]);
+                              }
+                            }}
+                            className="text-[11px] font-semibold text-muted hover:text-foreground transition-colors"
+                          >
+                            {allChecked ? 'Desmarcar todos' : 'Selecionar todos'}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                          {group.perms.map((p) => {
+                            const isChecked = selectedPermissions.includes(p.id);
+                            return (
+                              <label
+                                key={p.id}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
+                                  isChecked
+                                    ? 'bg-zinc-800 border-zinc-600 text-foreground font-semibold shadow-sm'
+                                    : 'bg-zinc-900/30 border-zinc-800 text-muted hover:border-zinc-700'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    setSelectedPermissions(prev =>
+                                      prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id]
+                                    );
+                                  }}
+                                  className="rounded border-zinc-700 bg-zinc-900 text-foreground focus:ring-0"
+                                />
+                                <span>{p.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="mt-4 flex justify-end">
                 <button
                   type="submit"
