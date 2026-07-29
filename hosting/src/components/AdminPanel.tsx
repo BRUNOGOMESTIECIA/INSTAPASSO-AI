@@ -11,6 +11,59 @@ interface AdminPanelProps {
   operators?: Operator[];
 }
 
+const PERMISSION_GROUPS = [
+  {
+    category: 'CHAMADOS & TICKETS',
+    permissions: [
+      { id: 'tickets.view', label: 'Visualizar Tickets' },
+      { id: 'tickets.create', label: 'Criar Novos Tickets' },
+      { id: 'tickets.update', label: 'Editar Status & Atribuição' },
+      { id: 'tickets.close', label: 'Encerrar & Resolver Chamados' },
+      { id: 'tickets.delete', label: 'Excluir Registros de Tickets' },
+    ]
+  },
+  {
+    category: 'CHAT AO VIVO',
+    permissions: [
+      { id: 'chat.view', label: 'Acessar Fila de Atendimento' },
+      { id: 'chat.attend', label: 'Assumir & Responder Chats' },
+      { id: 'chat.manage', label: 'Supervisionar Chats de Outros Operadores' },
+      { id: 'chat.history', label: 'Visualizar Histórico Completo de Chats' },
+    ]
+  },
+  {
+    category: 'BASE DE CONHECIMENTO & CATÁLOGO',
+    permissions: [
+      { id: 'kb.view', label: 'Visualizar Artigos da KB' },
+      { id: 'kb.manage', label: 'Criar / Publicar Artigos da KB' },
+      { id: 'catalog.view', label: 'Visualizar Catálogo de Serviços' },
+      { id: 'catalog.manage', label: 'Gerenciar Serviços do Catálogo' },
+    ]
+  },
+  {
+    category: 'MONITORAMENTO & DISPOSITIVOS',
+    permissions: [
+      { id: 'monitoring.hardware', label: 'Painel de Equipamentos & Servidores' },
+      { id: 'monitoring.printers', label: 'Painel de Impressoras & Contadores' },
+    ]
+  },
+  {
+    category: 'RELATÓRIOS & EXECUTIVE',
+    permissions: [
+      { id: 'reports.view', label: 'Visualizar Indicadores & Métricas' },
+      { id: 'reports.export', label: 'Exportar Relatórios em PDF & Excel' },
+    ]
+  },
+  {
+    category: 'ADMINISTRAÇÃO GERAL',
+    permissions: [
+      { id: 'admin.users', label: 'Gerenciar Equipe / Clientes' },
+      { id: 'admin.roles', label: 'Papéis e Permissões' },
+      { id: 'admin.settings', label: 'Configurações Globais' },
+    ]
+  }
+];
+
 /**
  * @component AdminPanel
  * Painel Administrativo responsável pelo CRUD de domínios (B2B) e Equipe Interna (Operadores).
@@ -30,6 +83,11 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
     'tickets.view', 'tickets.create', 'chat.view', 'chat.attend', 'kb.view', 'catalog.view', 'reports.view'
   ]);
+
+  // Edição de Operador Cadastrado
+  const [editingOperatorId, setEditingOperatorId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<OperatorRole>('N1');
+  const [editingPermissions, setEditingPermissions] = useState<string[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DomainStatus | 'ALL'>('ALL');
@@ -68,6 +126,32 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
        console.error("Erro ao alterar status do operador:", e);
     } finally {
        setIsProcessing(false);
+    }
+  };
+
+  const handleStartEditOperator = (op: Operator) => {
+    setEditingOperatorId(op.id);
+    setEditingRole(op.role || 'N1');
+    setEditingPermissions(op.permissions || [
+      'tickets.view', 'tickets.create', 'chat.view', 'chat.attend', 'kb.view', 'catalog.view', 'reports.view'
+    ]);
+  };
+
+  const handleSaveOperatorEdit = async (op: Operator) => {
+    setIsProcessing(true);
+    try {
+      const updatedOp = {
+        ...op,
+        role: editingRole,
+        permissions: editingPermissions,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'operators', op.id), updatedOp);
+      setEditingOperatorId(null);
+    } catch (e) {
+      console.error("Erro ao atualizar operador no InstaPasso:", e);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -482,51 +566,178 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
               <h3 className="text-lg font-medium leading-6">Operadores Cadastrados</h3>
             </div>
             <div className="divide-y divide-border">
-              {operators.map((op) => (
-                <div key={op.id} className="px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-zinc-900/30 transition-colors space-y-4 sm:space-y-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-                    <div className="mb-3 sm:mb-0">
-                      <p className="text-sm font-medium text-foreground">{op.fullName}</p>
-                      <p className="text-xs text-muted">{op.email}</p>
-                    </div>
-                    <div className="sm:ml-4 flex flex-col space-y-2">
-                      <div>{getStatusBadge(op.status)}</div>
-                      <div className="flex flex-wrap gap-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/30 text-blue-400 border border-blue-900/50">
-                          {op.role}
-                        </span>
+              {operators.map((op) => {
+                const isEditing = editingOperatorId === op.id;
+                return (
+                  <div key={op.id} className="flex flex-col hover:bg-zinc-900/30 transition-colors">
+                    <div className="px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                        <div className="mb-3 sm:mb-0">
+                          <p className="text-sm font-medium text-foreground">{op.fullName}</p>
+                          <p className="text-xs text-muted">{op.email}</p>
+                        </div>
+                        <div className="sm:ml-4 flex flex-col space-y-2">
+                          <div>{getStatusBadge(op.status)}</div>
+                          <div className="flex flex-wrap gap-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/30 text-blue-400 border border-blue-900/50">
+                              {op.role}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        {op.status !== 'DELETED' && (
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => {
+                              if (isEditing) {
+                                setEditingOperatorId(null);
+                              } else {
+                                handleStartEditOperator(op);
+                              }
+                            }}
+                            className={`text-xs font-medium px-3 py-1.5 border rounded-md transition-colors ${
+                              isEditing
+                                ? 'border-amber-700 bg-amber-950/40 text-amber-300'
+                                : 'border-blue-900/50 bg-blue-950/30 text-blue-400 hover:bg-blue-900/50'
+                            } disabled:opacity-50`}
+                          >
+                            {isEditing ? 'Cancelar Edição' : 'Editar Permissões'}
+                          </button>
+                        )}
+                        {op.status !== 'DELETED' && (
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => toggleOperatorStatus(op.id, op.status)}
+                            className="text-xs font-medium px-3 py-1.5 border border-border rounded-md hover:bg-zinc-800 transition-colors text-muted hover:text-foreground disabled:opacity-50"
+                          >
+                            {op.status === 'ACTIVE' ? 'Desabilitar' : 'Habilitar'}
+                          </button>
+                        )}
+                        <button
+                          className="text-xs font-medium px-3 py-1.5 border border-red-900/30 rounded-md hover:bg-red-900/20 text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          disabled={op.status === 'DELETED' || isProcessing}
+                          onClick={async () => {
+                             try {
+                                setIsProcessing(true);
+                                await setDoc(doc(db, 'operators', op.id), { ...op, status: 'DELETED' });
+                             } catch(e) {
+                                console.error('Erro ao excluir:', e);
+                             } finally {
+                                setIsProcessing(false);
+                             }
+                          }}
+                        >
+                          Excluir
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {op.status !== 'DELETED' && (
-                      <button
-                        disabled={isProcessing}
-                        onClick={() => toggleOperatorStatus(op.id, op.status)}
-                        className="text-xs font-medium px-3 py-1.5 border border-border rounded-md hover:bg-zinc-800 transition-colors text-muted hover:text-foreground disabled:opacity-50"
-                      >
-                        {op.status === 'ACTIVE' ? 'Desabilitar' : 'Habilitar'}
-                      </button>
+
+                    {/* Painel de Edição Expansível */}
+                    {isEditing && (
+                      <div className="px-6 py-5 bg-zinc-950/80 border-t border-border border-b border-zinc-800/80 space-y-5 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-border pb-3">
+                          <h4 className="text-sm font-semibold text-blue-400">Reajustar Acessos & Cargo de: {op.fullName}</h4>
+                          <span className="text-xs text-muted">ID: {op.id}</span>
+                        </div>
+
+                        {/* Seleção do Cargo */}
+                        <div>
+                          <label className="block text-xs font-medium text-muted mb-2">Cargo / Nível de Acesso</label>
+                          <select
+                            value={editingRole}
+                            onChange={(e) => setEditingRole(e.target.value as OperatorRole)}
+                            className="w-full sm:w-72 px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="N1">N1 — Suporte Inicial (Restrito)</option>
+                            <option value="N2">N2 — Analista Pleno</option>
+                            <option value="N3">N3 — Especialista</option>
+                            <option value="SOC">SOC — Segurança da Informação</option>
+                            <option value="INFRAESTRUTURA">INFRAESTRUTURA — Servidores e Redes (Restrito)</option>
+                            <option value="Administrador">Administrador — Acesso Total</option>
+                            <option value="Super Administrador">Super Administrador — Master TIECIA</option>
+                          </select>
+                        </div>
+
+                        {/* Árvore de Permissões */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Permissões de Módulos (ITSM Portal)</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {PERMISSION_GROUPS.map((group) => {
+                              const groupPermIds = group.permissions.map(p => p.id);
+                              const allSelected = groupPermIds.every(id => editingPermissions.includes(id));
+                              
+                              const toggleGroup = () => {
+                                if (allSelected) {
+                                  setEditingPermissions(prev => prev.filter(id => !groupPermIds.includes(id)));
+                                } else {
+                                  setEditingPermissions(prev => Array.from(new Set([...prev, ...groupPermIds])));
+                                }
+                              };
+
+                              return (
+                                <div key={group.category} className="p-3.5 bg-card/60 border border-border rounded-lg space-y-2.5">
+                                  <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
+                                    <span className="text-xs font-bold text-foreground">{group.category}</span>
+                                    <button
+                                      type="button"
+                                      onClick={toggleGroup}
+                                      className="text-[10px] text-blue-400 hover:underline font-medium"
+                                    >
+                                      {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+                                    </button>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {group.permissions.map((perm) => {
+                                      const isChecked = editingPermissions.includes(perm.id);
+                                      return (
+                                        <label key={perm.id} className="flex items-start space-x-2 text-xs text-muted hover:text-foreground cursor-pointer select-none">
+                                          <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={() => {
+                                              if (isChecked) {
+                                                setEditingPermissions(prev => prev.filter(id => id !== perm.id));
+                                              } else {
+                                                setEditingPermissions(prev => [...prev, perm.id]);
+                                              }
+                                            }}
+                                            className="mt-0.5 rounded border-border bg-background text-blue-500 focus:ring-0 cursor-pointer"
+                                          />
+                                          <span>{perm.label}</span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Botões de Ação */}
+                        <div className="flex justify-end gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingOperatorId(null)}
+                            className="px-4 py-2 border border-border rounded-lg text-xs text-muted hover:text-foreground transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => handleSaveOperatorEdit(op)}
+                            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-lg transition-colors shadow-md disabled:opacity-50"
+                          >
+                            {isProcessing ? 'Salvando...' : 'Salvar Alterações'}
+                          </button>
+                        </div>
+                      </div>
                     )}
-                    <button
-                      className="text-xs font-medium px-3 py-1.5 border border-red-900/30 rounded-md hover:bg-red-900/20 text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      disabled={op.status === 'DELETED' || isProcessing}
-                      onClick={async () => {
-                         try {
-                            setIsProcessing(true);
-                            await setDoc(doc(db, 'operators', op.id), { ...op, status: 'DELETED' });
-                         } catch(e) {
-                            console.error('Erro ao excluir:', e);
-                         } finally {
-                            setIsProcessing(false);
-                         }
-                      }}
-                    >
-                      Excluir
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {operators.length === 0 && (
                 <div className="px-6 py-8 text-center text-muted text-sm">
                   Nenhum operador da TIECIA cadastrado.
