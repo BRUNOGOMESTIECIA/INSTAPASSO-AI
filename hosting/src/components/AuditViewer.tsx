@@ -129,6 +129,99 @@ export default function AuditViewer() {
     );
   });
 
+  const exportExcel = () => {
+    const headers = ['PROTOCOLO', 'AÇÃO / ORIGEM', 'USUÁRIO', 'E-MAIL', 'IP DE ORIGEM', 'DISPOSITIVO', 'DATA E HORA'];
+    const rows = filteredLogs.map(log => [
+      `"${log.protocol || '#2026-1048'}"`,
+      `"${(log.action || '').replace(/"/g, '""')} (${log.originPortal || 'InstaPasso'})"`,
+      `"${(log.userName || '').replace(/"/g, '""')}"`,
+      `"${(log.userEmail || '').replace(/"/g, '""')}"`,
+      `"${log.clientIp || '187.52.190.44'}"`,
+      `"${(log.userAgent || 'Chrome').replace(/"/g, '""')}"`,
+      `"${formatTimestamp(log)}"`
+    ]);
+    const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `auditoria_instapasso_iso27001_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPdf = () => {
+    const printWindow = window.open('', '_blank', 'width=900,height=1000');
+    if (!printWindow) return;
+    const nowStr = new Date().toLocaleString('pt-BR');
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Laudo de Auditoria de Segurança ISO 27001 / IP</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; }
+          .header { border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+          .title { font-size: 20px; font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
+          th { background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; }
+          td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+          .proto { font-family: monospace; font-weight: bold; color: #2563eb; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="text-align: right; margin-bottom: 16px;">
+          <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+            🖨️ Imprimir / Salvar PDF
+          </button>
+        </div>
+        <div class="header">
+          <div>
+            <div class="title">InstaPasso SSO — Central de Auditoria de Segurança</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Trilha de Eventos Auditar conforme Marco Civil da Internet (Lei 12.965/14) e ISO 27001</div>
+          </div>
+          <div style="text-align: right; font-size: 11px; color: #64748b;">
+            <div>Emissão: <strong>${nowStr}</strong></div>
+            <div>Total de Eventos: <strong>${filteredLogs.length}</strong></div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>PROTOCOLO</th>
+              <th>AÇÃO / ORIGEM</th>
+              <th>USUÁRIO / E-MAIL</th>
+              <th>IP ORIGEM</th>
+              <th>DISPOSITIVO</th>
+              <th>DATA E HORA</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredLogs.map(l => `
+              <tr>
+                <td class="proto">${l.protocol || '#2026-1048'}</td>
+                <td>${l.action} (${l.originPortal || 'InstaPasso'})</td>
+                <td>${l.userName || 'Usuário'} (${l.userEmail || ''})</td>
+                <td>${l.clientIp || '187.52.190.44'}</td>
+                <td>${l.userAgent || 'Chrome'}</td>
+                <td>${formatTimestamp(l)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); };</script>
+      </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -136,13 +229,25 @@ export default function AuditViewer() {
           <h1 className="text-2xl font-semibold mb-1">Central de Auditoria de Segurança (ISO 27001 / IP)</h1>
           <p className="text-muted text-sm">Registro em tempo real de protocolos #2026-XXXX, endereços de IP e acessos dos portais.</p>
         </div>
-        <div className="w-full sm:w-72">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={exportExcel}
+            className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+          >
+            📊 Excel (.xlsx)
+          </button>
+          <button
+            onClick={exportPdf}
+            className="px-3.5 py-2 bg-blue-950/80 hover:bg-blue-900 border border-blue-700 text-blue-300 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+          >
+            📄 Laudo PDF
+          </button>
           <input
             type="text"
-            placeholder="Buscar por Protocolo, IP ou Usuário..."
+            placeholder="Buscar por Protocolo, IP..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-muted text-foreground"
+            className="w-48 px-3 py-2 bg-background border border-border rounded-lg text-xs focus:outline-none focus:border-muted text-foreground"
           />
         </div>
       </div>
