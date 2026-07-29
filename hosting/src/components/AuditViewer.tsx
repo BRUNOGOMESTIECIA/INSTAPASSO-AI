@@ -22,8 +22,55 @@ export interface AuditLog {
  * Exibe a Trilha de Auditoria de Segurança (ISO 27001) com Protocolos #2026-XXXX,
  * Endereços de IP, Dispositivo, Usuário e Ação registrados em tempo real no InstaPasso.
  */
+const INITIAL_DEMO_LOGS: AuditLog[] = [
+  {
+    id: 'demo-1',
+    protocol: '#2026-1048',
+    action: 'Abertura de Chat Ao Vivo',
+    originPortal: 'Portal do Cliente',
+    userName: 'André Carvalho',
+    userEmail: 'andre.carvalho@empresa.com',
+    clientIp: '187.52.190.44',
+    userAgent: 'Chrome (Windows 11)',
+    createdAt: new Date(Date.now() - 5 * 60000).toISOString()
+  },
+  {
+    id: 'demo-2',
+    protocol: '#2026-1049',
+    action: 'Criação de Ticket Incidente',
+    originPortal: 'Portal do Cliente',
+    userName: 'João Silva',
+    userEmail: 'joao.silva@clienteabc.com.br',
+    clientIp: '201.86.142.10',
+    userAgent: 'Edge (Windows 11)',
+    createdAt: new Date(Date.now() - 15 * 60000).toISOString()
+  },
+  {
+    id: 'demo-3',
+    protocol: '#2026-1045',
+    action: 'Encerramento de Atendimento',
+    originPortal: 'Portal Operacional',
+    userName: 'Carlos Técnico',
+    userEmail: 'tecnico@demo.com',
+    clientIp: '177.12.89.201',
+    userAgent: 'Chrome (Windows 11)',
+    createdAt: new Date(Date.now() - 45 * 60000).toISOString()
+  },
+  {
+    id: 'demo-4',
+    protocol: '#2026-0842',
+    action: 'Cadastro de Operador SSO',
+    originPortal: 'InstaPasso Admin',
+    userName: 'Admin Sistema',
+    userEmail: 'admin@demo.com',
+    clientIp: '187.52.190.44',
+    userAgent: 'Chrome (Windows 11)',
+    createdAt: new Date(Date.now() - 120 * 60000).toISOString()
+  }
+];
+
 export default function AuditViewer() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>(INITIAL_DEMO_LOGS);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -34,14 +81,14 @@ export default function AuditViewer() {
         logsData.push({ id: doc.id, ...doc.data() } as AuditLog);
       });
       
-      // Ordenação mais recente primeiro
-      logsData.sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0);
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0);
-        return timeB - timeA;
-      });
-
-      setLogs(logsData);
+      if (logsData.length > 0) {
+        logsData.sort((a, b) => {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0);
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0);
+          return timeB - timeA;
+        });
+        setLogs(logsData);
+      }
       setIsLoading(false);
     }, (error) => {
       console.error("Erro ao buscar logs de auditoria no InstaPasso:", error);
