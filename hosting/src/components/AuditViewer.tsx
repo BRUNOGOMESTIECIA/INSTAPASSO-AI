@@ -73,6 +73,8 @@ export default function AuditViewer() {
   const [logs, setLogs] = useState<AuditLog[]>(INITIAL_DEMO_LOGS);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [dateStart, setDateStart] = useState('2026-01-01');
+  const [dateEnd, setDateEnd] = useState(new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'audit_logs'), (snapshot) => {
@@ -117,6 +119,14 @@ export default function AuditViewer() {
   };
 
   const filteredLogs = logs.filter(log => {
+    if (dateStart || dateEnd) {
+      const logDate = log.createdAt ? new Date(log.createdAt).getTime() : 0;
+      if (logDate) {
+        const start = new Date(dateStart).getTime();
+        const end = new Date(dateEnd + 'T23:59:59').getTime();
+        if (logDate < start || logDate > end) return false;
+      }
+    }
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -229,16 +239,34 @@ export default function AuditViewer() {
           <h1 className="text-2xl font-semibold mb-1">Central de Auditoria de Segurança (ISO 27001 / IP)</h1>
           <p className="text-muted text-sm">Registro em tempo real de protocolos #2026-XXXX, endereços de IP e acessos dos portais.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+          {/* Seletor de Período de Datas */}
+          <div className="flex items-center gap-2 bg-zinc-900/90 border border-zinc-700/80 rounded-lg px-3 py-1.5 shrink-0">
+            <span className="text-xs font-bold text-muted">De:</span>
+            <input
+              type="date"
+              value={dateStart}
+              onChange={(e) => setDateStart(e.target.value)}
+              className="bg-zinc-800 border border-zinc-700 text-xs font-semibold text-foreground rounded px-2 py-1 outline-none"
+            />
+            <span className="text-xs font-bold text-muted">Até:</span>
+            <input
+              type="date"
+              value={dateEnd}
+              onChange={(e) => setDateEnd(e.target.value)}
+              className="bg-zinc-800 border border-zinc-700 text-xs font-semibold text-foreground rounded px-2 py-1 outline-none"
+            />
+          </div>
+
           <button
             onClick={exportExcel}
-            className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+            className="px-3.5 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
           >
             📊 Excel (.xlsx)
           </button>
           <button
             onClick={exportPdf}
-            className="px-3.5 py-2 bg-blue-950/80 hover:bg-blue-900 border border-blue-700 text-blue-300 text-xs font-semibold rounded-lg transition-colors shadow-sm"
+            className="px-3.5 py-2 bg-blue-950/80 hover:bg-blue-900 border border-blue-700 text-blue-300 text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
           >
             📄 Laudo PDF
           </button>
@@ -247,7 +275,7 @@ export default function AuditViewer() {
             placeholder="Buscar por Protocolo, IP..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-48 px-3 py-2 bg-background border border-border rounded-lg text-xs focus:outline-none focus:border-muted text-foreground"
+            className="w-44 px-3 py-2 bg-background border border-border rounded-lg text-xs focus:outline-none focus:border-muted text-foreground"
           />
         </div>
       </div>
