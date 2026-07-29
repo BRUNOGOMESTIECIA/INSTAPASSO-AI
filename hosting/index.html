@@ -18,6 +18,11 @@
       (function() {
         'use strict';
 
+        // Se estiver embutido em iframe (Portal ITSM), desativa o bloqueio de dimensões de janela
+        if (window.self !== window.top) {
+          return;
+        }
+
         // 1. Bloqueia clique direito (menu "Inspecionar")
         document.addEventListener('contextmenu', function(e) {
           e.preventDefault();
@@ -53,21 +58,7 @@
           }
         });
 
-        // 3. Detecta abertura do DevTools por tamanho da janela
-        var devToolsOpen = false;
-        var threshold = 160;
-        setInterval(function() {
-          var widthDiff = window.outerWidth - window.innerWidth > threshold;
-          var heightDiff = window.outerHeight - window.innerHeight > threshold;
-          if (widthDiff || heightDiff) {
-            if (!devToolsOpen) {
-              devToolsOpen = true;
-              document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#ef4444;font-family:sans-serif;text-align:center;padding:2rem"><div><h1 style="font-size:2rem;margin-bottom:1rem">⚠️ Acesso Bloqueado</h1><p style="color:#94a3b8;font-size:1.1rem">Ferramentas de desenvolvedor não são permitidas neste sistema.</p><p style="color:#94a3b8;margin-top:0.5rem">Feche o DevTools e recarregue a página.</p></div></div>';
-            }
-          } else {
-            devToolsOpen = false;
-          }
-        }, 1000);
+        // 3. Proteção básica ativa (sem bloqueio de tela por tamanho de janela)
 
         // 4. Bloqueia arrastar elementos (drag) para prevenir inspeção
         document.addEventListener('dragstart', function(e) {
