@@ -4,6 +4,7 @@ import { AVAILABLE_PAGES } from '../App';
 import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import AuditViewer from './AuditViewer';
+import SecurityIntrusionsViewer from './SecurityIntrusionsViewer';
 
 interface AdminPanelProps {
   domains: Domain[];
@@ -69,7 +70,7 @@ const PERMISSION_GROUPS = [
  * Painel Administrativo responsável pelo CRUD de domínios (B2B) e Equipe Interna (Operadores).
  */
 export default function AdminPanel({ domains, operators = [] }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'OPERATORS' | 'AUDIT'>('DOMAINS');
+  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'OPERATORS' | 'AUDIT' | 'SECURITY_ATTEMPTS'>('DOMAINS');
   const [newCompany, setNewCompany] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [newAllowedPages, setNewAllowedPages] = useState<string[]>([]);
@@ -372,9 +373,21 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
         >
           Logs de Auditoria
         </button>
+        <button
+          onClick={() => setActiveTab('SECURITY_ATTEMPTS')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'SECURITY_ATTEMPTS' 
+              ? 'border-red-500 text-red-400' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          🚨 Invasões & Acessos Bloqueados
+        </button>
       </div>
 
-      {activeTab === 'AUDIT' ? (
+      {activeTab === 'SECURITY_ATTEMPTS' ? (
+        <SecurityIntrusionsViewer />
+      ) : activeTab === 'AUDIT' ? (
         <AuditViewer />
       ) : activeTab === 'OPERATORS' ? (
         <>
