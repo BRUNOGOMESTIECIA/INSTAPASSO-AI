@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, onSnapshot, getDocs, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
+
 import { auth, db } from './firebase';
 
 import PublicValidationScreen from './components/PublicValidationScreen';
