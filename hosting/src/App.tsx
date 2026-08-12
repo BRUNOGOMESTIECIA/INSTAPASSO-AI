@@ -71,21 +71,13 @@ function App() {
         try {
           const email = firebaseUser.email || '';
           const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-          const isTiecia = email.toLowerCase().endsWith('@tiecia.com.br');
+          const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || email.toLowerCase() === 'bg@tiecia.com.br';
           
-          if (!isTiecia && !isDev) {
-             setAuthError('Acesso Negado: Apenas e-mails corporativos (@tiecia.com.br) têm acesso ao Painel Admin.');
-             await signOut(auth);
-             setUser(null);
-             setIsAuthLoading(false);
-             return;
-          }
-
-          // Consulta a tabela de operadores
+          // Consulta a tabela de operadores no Firestore
           const q = query(collection(db, 'operators'), where('email', '==', email.toLowerCase()));
           const querySnapshot = await getDocs(q);
           
-          let hasAdminAccess = isDev; // Em dev local, libera acesso de Admin para testes
+          let hasAdminAccess = false;
           
           querySnapshot.forEach((doc) => {
              const op = doc.data() as Operator;
@@ -94,6 +86,27 @@ function App() {
              }
           });
 
+          // Se for o primeiro acesso da TIÉCIA e a tabela estiver vazia, faz o auto-seed do Super Admin
+          if (!hasAdminAccess && isTieciaOwner) {
+             try {
+               const newOpRef = doc(collection(db, 'operators'));
+               await setDoc(newOpRef, {
+                 id: newOpRef.id,
+                 name: firebaseUser.displayName || 'Bruno Gomes (TIÉCIA)',
+                 email: email.toLowerCase(),
+                 role: 'Super Administrador',
+                 status: 'ACTIVE',
+                 createdAt: new Date().toISOString(),
+                 updatedAt: new Date().toISOString(),
+                 modules: ['*']
+               });
+               console.log("[ZeroTrust InstaPasso] Primeiro Super Admin registrado no Firestore.");
+               hasAdminAccess = true;
+             } catch (err) {
+               console.error("Falha ao registrar Super Admin no Firestore", err);
+             }
+          }
+
           if (hasAdminAccess) {
              // Acesso permitido
              setUser(firebaseUser);
@@ -101,30 +114,8 @@ function App() {
              setIsAuthLoading(false);
              return;
           } else {
-             // Auto-seed no ambiente local (Emulador) para facilitar os testes
-             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                try {
-                  const newOpRef = doc(collection(db, 'operators'));
-                  await setDoc(newOpRef, {
-                    id: newOpRef.id,
-                    name: firebaseUser.displayName || 'Admin Local',
-                    email: email.toLowerCase(),
-                    role: 'Super Administrador',
-                    status: 'ACTIVE',
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    modules: ['*']
-                  });
-                  console.log("Auto-seed de operador criado no emulador.");
-                  setUser(firebaseUser);
-                  setAuthError('');
-                  setIsAuthLoading(false);
-                  return;
-                } catch (err) {
-                  console.error("Falha no auto-seed do emulador", err);
-                }
-             }
-             setAuthError('Acesso Negado: Você não possui privilégios de Administrador ou Super Administrador.');
+             // BLOQUEIO ZERO-TRUST TOTAL
+             setAuthError('Acesso Negado: Seu e-mail não possui permissão de Administrador cadastrada no InstaPasso.');
              await signOut(auth);
              setUser(null);
              setIsAuthLoading(false);
@@ -132,7 +123,7 @@ function App() {
           
         } catch(e) {
            console.error("Erro na validação de segurança:", e);
-           setAuthError('Erro ao validar permissões no servidor.');
+           setAuthError('Erro ao validar permissões de segurança no servidor.');
            await signOut(auth);
            setUser(null);
            setIsAuthLoading(false);
