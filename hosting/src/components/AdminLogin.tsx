@@ -29,14 +29,16 @@ export default function AdminLogin({ authError }: AdminLoginProps) {
     try {
       // O Firebase Authenticator gerencia o popup OAuth2 do Google.
       // A verdadeira validação (Zero-Trust) ocorrerá no componente Pai (App.tsx)
-      // que detecta a mudança de estado e consulta o Firestore.
       await signInWithPopup(auth, provider);
     } catch (err: any) {
-      console.error("Google SSO error:", err);
-      setError(err.message || 'Falha ao autenticar com o Google.');
+      console.warn("Google SSO fallback triggered:", err);
+      if (err?.code === 'auth/api-key-not-valid' || err?.message?.includes('api-key-not-valid')) {
+        setError('O Firebase está em Modo de Demonstração (Sem API Key). Para conectar o Google Auth real, adicione as chaves no painel Vercel.');
+      } else {
+        setError(err.message || 'Falha ao autenticar com o Google.');
+      }
       setIsLoading(false);
     }
-    // Não damos isLoading(false) no sucesso porque o App.tsx vai interceptar o login e fazer o loading da validação.
   };
 
   return (

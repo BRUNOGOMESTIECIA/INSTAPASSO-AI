@@ -10,12 +10,12 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
  */
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoInstaPassoKey987654321",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "instapasso-ai-demo.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "instapasso-ai-demo",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "instapasso-ai-demo.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "9876543210",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:9876543210:web:654321fedcba"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB1-lnRyFDOuON7px65XvUh1ulivitDisU",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "portal-ai-tiecia.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "portal-ai-tiecia",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "portal-ai-tiecia.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "622284963952",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:622284963952:web:268cb9da5816f9962d74b5"
 };
 
 
