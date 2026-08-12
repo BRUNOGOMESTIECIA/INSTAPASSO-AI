@@ -59,7 +59,12 @@ function App() {
 
   // Monitorar estado de autenticação e aplicar regra Zero-Trust
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAuthLoading(false);
+    }, 1500);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(timer);
       setIsAuthLoading(true);
       
       if (firebaseUser) {
@@ -137,7 +142,10 @@ function App() {
         setIsAuthLoading(false);
       }
     });
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, []);
 
   // Carregar domínios e operadores do Firestore em tempo real
@@ -177,6 +185,7 @@ function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      setUser(null);
     } catch (e) {
       console.error("Erro ao fazer logout:", e);
     }
@@ -184,24 +193,24 @@ function App() {
 
   return (
     <ApiIntegrationsProvider>
-      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-        <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+        <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded bg-foreground flex items-center justify-center">
-                <span className="text-background font-bold text-xs">IP</span>
+              <div className="w-8 h-8 rounded bg-zinc-100 flex items-center justify-center">
+                <span className="text-zinc-950 font-black text-xs">IP</span>
               </div>
-              <span className="font-semibold tracking-tight">InstaPasso</span>
+              <span className="font-bold tracking-tight text-zinc-100">InstaPasso</span>
             </div>
             
             <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
-              <nav className="flex space-x-1 border border-border rounded-lg p-1 bg-background">
+              <nav className="flex space-x-1 border border-zinc-800 rounded-lg p-1 bg-zinc-900">
                 <button
                   onClick={() => setCurrentView('public')}
                   className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     currentView === 'public'
-                      ? 'bg-zinc-800 text-foreground shadow-sm'
-                      : 'text-muted hover:text-foreground hover:bg-zinc-900'
+                      ? 'bg-zinc-800 text-zinc-100 shadow-sm font-bold'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
                   }`}
                 >
                   Tela Pública
@@ -210,8 +219,8 @@ function App() {
                   onClick={() => setCurrentView('admin')}
                   className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     currentView === 'admin'
-                      ? 'bg-zinc-800 text-foreground shadow-sm'
-                      : 'text-muted hover:text-foreground hover:bg-zinc-900'
+                      ? 'bg-zinc-800 text-zinc-100 shadow-sm font-bold'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
                   }`}
                 >
                   Painel Admin
@@ -235,8 +244,11 @@ function App() {
             <PublicValidationScreen />
           ) : (
             isAuthLoading ? (
-              <div className="flex-grow flex items-center justify-center">
-                <p className="text-muted text-sm">Verificando segurança...</p>
+              <div className="flex-grow flex items-center justify-center p-8">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-zinc-400 text-sm font-medium">Verificando segurança do InstaPasso...</p>
+                </div>
               </div>
             ) : user ? (
               <AdminPanel domains={domains} setDomains={setDomains} operators={operators} />
@@ -246,7 +258,7 @@ function App() {
           )}
         </main>
         
-        <footer className="border-t border-border py-6 text-center text-xs text-muted">
+        <footer className="border-t border-zinc-800 py-6 text-center text-xs text-zinc-400">
           &copy; {new Date().getFullYear()} InstaPasso. Conformidade LGPD e ISO 27001.
         </footer>
       </div>
