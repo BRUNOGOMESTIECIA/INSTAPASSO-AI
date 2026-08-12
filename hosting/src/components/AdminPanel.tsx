@@ -5,7 +5,9 @@ import { db } from '../firebase';
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import AuditViewer from './AuditViewer';
 import SecurityIntrusionsViewer from './SecurityIntrusionsViewer';
-
+import SecurityGovernancePanel from './SecurityGovernancePanel';
+import RolesManagerPanel, { useDynamicRoles } from './RolesManagerPanel';
+import { ApiIntegrationsManagerPanel } from './ApiIntegrationsManagerPanel';
 interface AdminPanelProps {
   domains: Domain[];
   setDomains?: React.Dispatch<React.SetStateAction<Domain[]>>; // Mantido por compatibilidade
@@ -70,13 +72,15 @@ const PERMISSION_GROUPS = [
  * Painel Administrativo responsável pelo CRUD de domínios (B2B) e Equipe Interna (Operadores).
  */
 export default function AdminPanel({ domains, operators = [] }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'OPERATORS' | 'AUDIT' | 'SECURITY_ATTEMPTS'>('DOMAINS');
+  const [activeTab, setActiveTab] = useState<'DOMAINS' | 'OPERATORS' | 'AUDIT' | 'SECURITY_GOVERNANCE' | 'SECURITY_ATTEMPTS' | 'ROLES' | 'API_INTEGRATIONS'>('DOMAINS');
   const [newCompany, setNewCompany] = useState('');
   const [newDomain, setNewDomain] = useState('');
   const [newAllowedPages, setNewAllowedPages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { roles: dynamicRoles } = useDynamicRoles();
+  
   // Estados para Equipe Interna
   const [newOperatorName, setNewOperatorName] = useState('');
   const [newOperatorEmail, setNewOperatorEmail] = useState('');
@@ -364,6 +368,26 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
           Equipe Interna
         </button>
         <button
+          onClick={() => setActiveTab('API_INTEGRATIONS')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'API_INTEGRATIONS' 
+              ? 'border-blue-500 text-blue-400' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          🔌 Integrações de API
+        </button>
+        <button
+          onClick={() => setActiveTab('ROLES')}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'ROLES' 
+              ? 'border-foreground text-foreground' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          Cargos e Permissões
+        </button>
+        <button
           onClick={() => setActiveTab('AUDIT')}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'AUDIT' 
@@ -372,6 +396,16 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
           }`}
         >
           Logs de Auditoria
+        </button>
+        <button
+          onClick={() => setActiveTab('SECURITY_GOVERNANCE')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'SECURITY_GOVERNANCE' 
+              ? 'border-blue-500 text-blue-400' 
+              : 'border-transparent text-muted hover:text-foreground'
+          }`}
+        >
+          🛡️ Segurança & Governança ISO 27001
         </button>
         <button
           onClick={() => setActiveTab('SECURITY_ATTEMPTS')}
@@ -385,7 +419,13 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
         </button>
       </div>
 
-      {activeTab === 'SECURITY_ATTEMPTS' ? (
+      {activeTab === 'API_INTEGRATIONS' ? (
+        <ApiIntegrationsManagerPanel />
+      ) : activeTab === 'ROLES' ? (
+        <RolesManagerPanel />
+      ) : activeTab === 'SECURITY_GOVERNANCE' ? (
+        <SecurityGovernancePanel />
+      ) : activeTab === 'SECURITY_ATTEMPTS' ? (
         <SecurityIntrusionsViewer />
       ) : activeTab === 'AUDIT' ? (
         <AuditViewer />
@@ -439,16 +479,19 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
                     id="opRole"
                     required
                     value={newOperatorRole}
-                    onChange={(e) => setNewOperatorRole(e.target.value as OperatorRole)}
+                    onChange={(e) => {
+                      const selectedRoleName = e.target.value;
+                      setNewOperatorRole(selectedRoleName as OperatorRole);
+                      const matchingRole = dynamicRoles.find(r => r.name === selectedRoleName);
+                      if (matchingRole) {
+                        setSelectedPermissions(matchingRole.permissions);
+                      }
+                    }}
                     className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:border-muted text-foreground transition-colors"
                   >
-                    <option value="N1">N1</option>
-                    <option value="N2">N2</option>
-                    <option value="N3">N3</option>
-                    <option value="SOC">SOC</option>
-                    <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
-                    <option value="Administrador">Administrador</option>
-                    <option value="Super Administrador">Super Administrador</option>
+                    {dynamicRoles.map(r => (
+                      <option key={r.id} value={r.name}>{r.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -659,16 +702,19 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
                           <label className="block text-xs font-medium text-muted mb-2">Cargo / Nível de Acesso</label>
                           <select
                             value={editingRole}
-                            onChange={(e) => setEditingRole(e.target.value as OperatorRole)}
+                            onChange={(e) => {
+                              const selectedRoleName = e.target.value;
+                              setEditingRole(selectedRoleName as OperatorRole);
+                              const matchingRole = dynamicRoles.find(r => r.name === selectedRoleName);
+                              if (matchingRole) {
+                                setEditingPermissions(matchingRole.permissions);
+                              }
+                            }}
                             className="w-full sm:w-72 px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-blue-500"
                           >
-                            <option value="N1">N1 — Suporte Inicial (Restrito)</option>
-                            <option value="N2">N2 — Analista Pleno</option>
-                            <option value="N3">N3 — Especialista</option>
-                            <option value="SOC">SOC — Segurança da Informação</option>
-                            <option value="INFRAESTRUTURA">INFRAESTRUTURA — Servidores e Redes (Restrito)</option>
-                            <option value="Administrador">Administrador — Acesso Total</option>
-                            <option value="Super Administrador">Super Administrador — Master TIECIA</option>
+                            {dynamicRoles.map(r => (
+                              <option key={r.id} value={r.name}>{r.name}</option>
+                            ))}
                           </select>
                         </div>
 
@@ -947,3 +993,4 @@ export default function AdminPanel({ domains, operators = [] }: AdminPanelProps)
     </div>
   );
 }
+

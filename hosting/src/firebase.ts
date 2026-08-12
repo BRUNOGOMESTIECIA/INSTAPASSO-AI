@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 /**
  * @fileoverview Configuração central do Firebase (App, Auth e Firestore).
@@ -29,3 +29,11 @@ export const db = getFirestore(app);
 
 /** @description Provedor de Autenticação do Google para SSO (Single Sign-On) */
 export const provider = new GoogleAuthProvider();
+
+if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+  const host = "127.0.0.1";
+  console.info(`[Firebase] Conectando aos emuladores do InstaPasso no host: ${host}`);
+  connectAuthEmulator(auth, `http://${host}:9099`);
+  connectFirestoreEmulator(db, host, 8080);
+}
+

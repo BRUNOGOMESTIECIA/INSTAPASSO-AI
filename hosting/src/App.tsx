@@ -7,6 +7,7 @@ import { auth, db } from './firebase';
 import PublicValidationScreen from './components/PublicValidationScreen';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
+import { ApiIntegrationsProvider } from './hooks/use-api-integrations';
 
 /**
  * @typedef {'ACTIVE' | 'INACTIVE' | 'DELETED'} DomainStatus
@@ -63,9 +64,10 @@ function App() {
       if (firebaseUser) {
         try {
           const email = firebaseUser.email || '';
+          const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
           const isTiecia = email.toLowerCase().endsWith('@tiecia.com.br');
           
-          if (!isTiecia) {
+          if (!isTiecia && !isDev) {
              setAuthError('Acesso Negado: Apenas e-mails corporativos (@tiecia.com.br) têm acesso ao Painel Admin.');
              await signOut(auth);
              setUser(null);
@@ -77,33 +79,50 @@ function App() {
           const q = query(collection(db, 'operators'), where('email', '==', email.toLowerCase()));
           const querySnapshot = await getDocs(q);
           
-          if (!querySnapshot.empty) {
-             let hasAdminAccess = false;
-             
-             querySnapshot.forEach((doc) => {
-                const op = doc.data() as Operator;
-                if (op.status === 'ACTIVE' && (op.role === 'Super Administrador' || op.role === 'Administrador')) {
-                   hasAdminAccess = true;
-                }
-             });
-
-             if (hasAdminAccess) {
-                // Acesso permitido
-                setUser(firebaseUser);
-                setAuthError('');
-                setIsAuthLoading(false);
-                return;
-             } else {
-                setAuthError('Acesso Negado: Você não possui privilégios de Administrador ou Super Administrador.');
-             }
-          } else {
-             setAuthError('Acesso Negado: Seu e-mail não está cadastrado na Equipe Interna.');
-          }
+          let hasAdminAccess = isDev; // Em dev local, libera acesso de Admin para testes
           
-          // Se falhou em alguma das validações, desloga o usuário
-          await signOut(auth);
-          setUser(null);
-          setIsAuthLoading(false);
+          querySnapshot.forEach((doc) => {
+             const op = doc.data() as Operator;
+             if (op.status === 'ACTIVE' && (op.role === 'Super Administrador' || op.role === 'Administrador')) {
+                hasAdminAccess = true;
+             }
+          });
+
+          if (hasAdminAccess) {
+             // Acesso permitido
+             setUser(firebaseUser);
+             setAuthError('');
+             setIsAuthLoading(false);
+             return;
+          } else {
+             // Auto-seed no ambiente local (Emulador) para facilitar os testes
+             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                try {
+                  const newOpRef = doc(collection(db, 'operators'));
+                  await setDoc(newOpRef, {
+                    id: newOpRef.id,
+                    name: firebaseUser.displayName || 'Admin Local',
+                    email: email.toLowerCase(),
+                    role: 'Super Administrador',
+                    status: 'ACTIVE',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    modules: ['*']
+                  });
+                  console.log("Auto-seed de operador criado no emulador.");
+                  setUser(firebaseUser);
+                  setAuthError('');
+                  setIsAuthLoading(false);
+                  return;
+                } catch (err) {
+                  console.error("Falha no auto-seed do emulador", err);
+                }
+             }
+             setAuthError('Acesso Negado: Você não possui privilégios de Administrador ou Super Administrador.');
+             await signOut(auth);
+             setUser(null);
+             setIsAuthLoading(false);
+          }
           
         } catch(e) {
            console.error("Erro na validação de segurança:", e);
@@ -163,72 +182,74 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded bg-foreground flex items-center justify-center">
-              <span className="text-background font-bold text-xs">IP</span>
+    <ApiIntegrationsProvider>
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+        <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded bg-foreground flex items-center justify-center">
+                <span className="text-background font-bold text-xs">IP</span>
+              </div>
+              <span className="font-semibold tracking-tight">InstaPasso</span>
             </div>
-            <span className="font-semibold tracking-tight">InstaPasso</span>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <nav className="flex space-x-1 border border-border rounded-lg p-1 bg-background">
-              <button
-                onClick={() => setCurrentView('public')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentView === 'public'
-                    ? 'bg-zinc-800 text-foreground shadow-sm'
-                    : 'text-muted hover:text-foreground hover:bg-zinc-900'
-                }`}
-              >
-                Tela Pública
-              </button>
-              <button
-                onClick={() => setCurrentView('admin')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentView === 'admin'
-                    ? 'bg-zinc-800 text-foreground shadow-sm'
-                    : 'text-muted hover:text-foreground hover:bg-zinc-900'
-                }`}
-              >
-                Painel Admin
-              </button>
-            </nav>
+            
+            <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
+              <nav className="flex space-x-1 border border-border rounded-lg p-1 bg-background">
+                <button
+                  onClick={() => setCurrentView('public')}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    currentView === 'public'
+                      ? 'bg-zinc-800 text-foreground shadow-sm'
+                      : 'text-muted hover:text-foreground hover:bg-zinc-900'
+                  }`}
+                >
+                  Tela Pública
+                </button>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    currentView === 'admin'
+                      ? 'bg-zinc-800 text-foreground shadow-sm'
+                      : 'text-muted hover:text-foreground hover:bg-zinc-900'
+                  }`}
+                >
+                  Painel Admin
+                </button>
+              </nav>
 
-            {user && (
-              <button 
-                onClick={handleLogout}
-                className="text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-900/20 px-3 py-1.5 rounded-md transition-colors"
-              >
-                Sair
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-grow flex flex-col">
-        {currentView === 'public' ? (
-          <PublicValidationScreen />
-        ) : (
-          isAuthLoading ? (
-            <div className="flex-grow flex items-center justify-center">
-              <p className="text-muted text-sm">Verificando segurança...</p>
+              {user && (
+                <button 
+                  onClick={handleLogout}
+                  className="text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-900/20 px-3 py-1.5 rounded-md transition-colors"
+                >
+                  Sair
+                </button>
+              )}
             </div>
-          ) : user ? (
-            <AdminPanel domains={domains} setDomains={setDomains} operators={operators} />
+          </div>
+        </header>
+
+        <main className="flex-grow flex flex-col">
+          {currentView === 'public' ? (
+            <PublicValidationScreen />
           ) : (
-            <AdminLogin authError={authError} />
-          )
-        )}
-      </main>
-      
-      <footer className="border-t border-border py-6 text-center text-xs text-muted">
-        &copy; {new Date().getFullYear()} InstaPasso. Conformidade LGPD e ISO 27001.
-      </footer>
-    </div>
+            isAuthLoading ? (
+              <div className="flex-grow flex items-center justify-center">
+                <p className="text-muted text-sm">Verificando segurança...</p>
+              </div>
+            ) : user ? (
+              <AdminPanel domains={domains} setDomains={setDomains} operators={operators} />
+            ) : (
+              <AdminLogin authError={authError} />
+            )
+          )}
+        </main>
+        
+        <footer className="border-t border-border py-6 text-center text-xs text-muted">
+          &copy; {new Date().getFullYear()} InstaPasso. Conformidade LGPD e ISO 27001.
+        </footer>
+      </div>
+    </ApiIntegrationsProvider>
   );
 }
 
