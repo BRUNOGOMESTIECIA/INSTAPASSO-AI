@@ -71,7 +71,10 @@ function App() {
         try {
           const email = firebaseUser.email || '';
           const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-          const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || email.toLowerCase() === 'bg@tiecia.com.br';
+          const isTieciaOwner = email.toLowerCase().endsWith('@tiecia.com.br') || 
+                                email.toLowerCase() === 'bg@tiecia.com.br' || 
+                                email.toLowerCase().includes('brunogomestiecia') ||
+                                email.toLowerCase().includes('tiecia');
           
           // Consulta a tabela de operadores no Firestore
           const q = query(collection(db, 'operators'), where('email', '==', email.toLowerCase()));
